@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/cinemast/json-rpc-stub/codegen"
 	"io/ioutil"
 	"github.com/cinemast/json-rpc-stub/specification"
 	"encoding/json"
@@ -24,7 +25,8 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(result.Procedures["AddProduct"].Params[0].Type.RefType)
+	cxx := codegen.NewJsonRpcCxx(os.Stdout, &result)
+	cxx.GenerateClient()
 	
 	fmt.Println()
 }
