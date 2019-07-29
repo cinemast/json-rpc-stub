@@ -26,7 +26,7 @@ func main() {
 	}
 
 	cxx := codegen.NewJsonRpcCxx(os.Stdout, &result)
-	cxx.GenerateClient()
+	cxx.GenerateServer()
 	
 	fmt.Println()
 }

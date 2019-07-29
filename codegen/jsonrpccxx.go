@@ -15,7 +15,24 @@ type JsonRpcCxx struct {
 }
 
 const (
-	server = `#pragma once`
+	server = `#pragma once
+#include <jsonrpccxx/server.hpp>
+#include "types.h"
+namespace {{.Namespace}} {
+	class {{.Class}} {
+	public:
+		{{ range $key, $value := .Spec.Procedures }}
+		// {{$value.Description}}
+		{{ ToReturnType $value.ReturnType }} {{$key}}({{ range $index,$param := $value.Params }}{{if $index}}, {{end}}{{ToCppType $param.Type}} {{$param.Name}}{{end}});{{end}}
+
+		bool Bind(jsonrpccxx::JsonRpcServer &server) {
+			bool result = true;{{ range $key, $proc := .Spec.Procedures }}
+			result &= server.Add("{{$key}}", GetHandle({{$.Class}}::{{$key}}, *this), { {{ range $index,$param := $proc.Params }}{{if $index}}, {{end}}"{{$param.Name}}"{{end}} });{{end}}
+			return result;
+		}
+		//TODO: Add binding method
+	};
+}`
 	client = `#pragma once
 #include <jsonrpccxx/client.hpp>
 #include "types.h"
@@ -69,19 +86,22 @@ func ToCppType(t specification.Type) string {
 	return "void"
 }
 
-func (cxx *JsonRpcCxx) GenerateClient() error {
-	tmpl, err := template.New("client").Funcs(template.FuncMap{
+func (cxx *JsonRpcCxx) GenerateTemplate(tpl string) error {
+	tmpl, err := template.New("template").Funcs(template.FuncMap{
 		"ToCppType": ToCppType,
 		"ToReturnType": ToReturnType,
-	}).Parse(client)
+	}).Parse(tpl)
 	if err != nil {
 		return err
 	}
-
 	tmpl.Execute(cxx.Writer, cxx)
 	return nil
 }
 
-func (cxx *JsonRpcCxx) GenerateServer() {
+func (cxx *JsonRpcCxx) GenerateClient() error {
+	return cxx.GenerateTemplate(client)
+}
 
+func (cxx *JsonRpcCxx) GenerateServer() error {
+	return cxx.GenerateTemplate(server)
 }
