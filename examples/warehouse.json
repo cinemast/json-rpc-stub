@@ -1,0 +1,53 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$ref": "#/types/ProductList",
+	"version": "1.0",
+	"procedures": {
+		"AddProduct": {
+			"description": "Adds a new product to the warehouse store",
+			"params": [
+				{
+					"$ref": "#/types/Product",
+					"name": "product"
+				}
+			],
+			"returns": { "type": "boolean"}
+		},
+		"AddProducts": {
+			"description": "Adds several new products to the warehouse store at once",
+			"params": [
+				{
+					"name": "products",
+					"$ref": "#/types/ProductList"
+				}
+			]
+		},
+		"GetProduct": {
+			"description": "Gets a product by Id",
+			"params": [{"name": "id", "type": "string"}],
+			"returns": {"$ref": "#/types/Product"}
+		}
+	},
+	"notifications": {},
+	"types": {
+		"ProductList": {
+			"type": "array",
+			"name": "ProductList",
+			"items": {
+				"name": "Product",
+				"$ref": "#/types/Product"
+			}
+		},
+		"Product": {
+			"type": "object",
+			"title": "Product",
+			"properties": {
+				"id": {"type": "string"},
+				"name": {"type": "string"},
+				"price": {"type": "number"},
+				"category": {"type": "string", "enum":["cc", "order"]}
+			},
+			"required": ["id", "name", "price", "category"]
+		}
+	}
+}
