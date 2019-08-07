@@ -2,31 +2,31 @@ package main
 
 import (
 	"github.com/cinemast/json-rpc-stub/codegen"
-	"io/ioutil"
 	"github.com/cinemast/json-rpc-stub/specification"
-	"encoding/json"
-	"os"
+	"os/exec"
 	"fmt"
 )
 
 func main() {
 	fmt.Println("json-rpc-stub tool")
-	jsonFile, err := os.Open("examples/warehouse.json")
+
+	_, err := exec.LookPath("quicktype")
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
-	defer jsonFile.Close()
-
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	var result specification.Specification
-	
-	if err := json.Unmarshal([]byte(byteValue), &result); err != nil {
+		fmt.Println("quicktype was not found on your PATH, please install it using `npm install -g quicktype`")
 		panic(err)
 	}
 
-	cxx := codegen.NewJsonRpcCxx(os.Stdout, &result)
-	cxx.GenerateServer()
+	spec,err := specification.NewSpecification("examples/warehouse.json")
+
+	cxx := codegen.NewJsonRpcCxx(spec, "warehouse", "WarehouseApp", "gen")
+	err = cxx.GenerateTypes()
+	if err != nil {
+		panic(err)
+	}
+	err = cxx.GenerateServer()
+	if err != nil {
+		panic(err)
+	}
 	
 	fmt.Println()
 }

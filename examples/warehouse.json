@@ -1,6 +1,10 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"$ref": "#/types/ProductList",
+	"anyOf": [
+		{"$ref": "#/types/ProductList"},
+		{"$ref": "#/types/Product"},
+		{"$ref": "#/types/Order"}
+	],
 	"version": "1.0",
 	"procedures": {
 		"AddProduct": {
@@ -32,9 +36,8 @@
 	"types": {
 		"ProductList": {
 			"type": "array",
-			"name": "ProductList",
+			"title": "ProductList",
 			"items": {
-				"name": "Product",
 				"$ref": "#/types/Product"
 			}
 		},
@@ -48,6 +51,17 @@
 				"category": {"type": "string", "enum":["cc", "order"]}
 			},
 			"required": ["id", "name", "price", "category"]
+		},
+		"Order": {
+			"type": "object",
+			"title": "Order",
+			"properties": {
+				"id": {"type": "string"},
+				"timestamp": {"type": "string", "format": "date-time"} ,
+				"customerId": {"type": "string"},
+				"products": { "type": "array", "items": {"$ref": "#/types/Product"}}
+			},
+			"required": ["id", "timestamp", "customerId", "products"]
 		}
 	}
 }

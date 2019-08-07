@@ -1,15 +1,18 @@
 package codegen
 
 import (
+	"errors"
+	"os/exec"
 	"strings"
+	"path"
 	"text/template"
 	"github.com/cinemast/json-rpc-stub/specification"
-	"io"
+	"os"	
 )
 
 type JsonRpcCxx struct {
-	Writer io.Writer
 	Namespace string
+	Path string
 	Class string
 	Spec *specification.Specification
 }
@@ -17,9 +20,9 @@ type JsonRpcCxx struct {
 const (
 	server = `#pragma once
 #include <jsonrpccxx/server.hpp>
-#include "types.h"
+#include "types.hpp"
 namespace {{.Namespace}} {
-	class {{.Class}} {
+	class {{.Class}}Server {
 	public:
 		{{ range $key, $value := .Spec.Procedures }}
 		// {{$value.Description}}
@@ -30,14 +33,13 @@ namespace {{.Namespace}} {
 			result &= server.Add("{{$key}}", GetHandle({{$.Class}}::{{$key}}, *this), { {{ range $index,$param := $proc.Params }}{{if $index}}, {{end}}"{{$param.Name}}"{{end}} });{{end}}
 			return result;
 		}
-		//TODO: Add binding method
 	};
 }`
 	client = `#pragma once
 #include <jsonrpccxx/client.hpp>
-#include "types.h"
+#include "types.hpp"
 namespace {{.Namespace}} {
-	class {{.Class}} {
+	class {{.Class}}Client {
 	public:
 		explicit {{.Class}}(jsonrpccxx::JsonRpcClient &client) : client(client) {}
 		{{ range $key, $value := .Spec.Procedures }}
@@ -50,8 +52,9 @@ namespace {{.Namespace}} {
 }`
 )
 
-func NewJsonRpcCxx(writer io.Writer, spec *specification.Specification) *JsonRpcCxx {
-	return &JsonRpcCxx{Writer: writer, Spec: spec, Namespace: "warehouse::foo", Class: "WarehouseClient"}
+func NewJsonRpcCxx(spec *specification.Specification, namespace string, class string, path string) *JsonRpcCxx {
+	os.MkdirAll(path, os.ModePerm)
+	return &JsonRpcCxx{Spec: spec, Namespace: namespace, Path: path, Class: class}
 }
 
 func ToReturnType(t specification.Type) string {
@@ -94,7 +97,25 @@ func (cxx *JsonRpcCxx) GenerateTemplate(tpl string) error {
 	if err != nil {
 		return err
 	}
-	tmpl.Execute(cxx.Writer, cxx)
+
+	f, err := os.Create(path.Join(cxx.Path, "server.hpp"))
+	
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	tmpl.Execute(f, cxx)
+	return nil
+}
+
+func (cxx *JsonRpcCxx) GenerateTypes() error {
+	filePath := path.Join(cxx.Path, "types.hpp")
+	cmd := exec.Command("quicktype", "--src-lang", "schema", cxx.Spec.Path, "-o", filePath, "--lang", "c++", "--code-format", "with-struct", "--no-boost", "--include-location", "global-include", "--namespace", cxx.Namespace)
+	output,err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.New(err.Error() + ": " + string(output))
+	}
 	return nil
 }
 
